@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALRA Planes · Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Poppins',sans-serif; background:#0f1117; color:#e2e5f0; min-height:100vh; }
+        
+        /* Login */
+        .login-overlay { position:fixed; inset:0; background:#0f1117; display:flex; align-items:center; justify-content:center; z-index:9999; }
+        .login-overlay.hidden { display:none; }
+        .login-box { background:#1a1d2a; padding:2.5rem; border-radius:16px; border:1px solid rgba(51,157,255,0.2); width:90%; max-width:380px; text-align:center; }
+        .login-box h2 { font-size:1.3rem; margin-bottom:0.3rem; }
+        .login-box p { font-size:0.8rem; color:#9499b3; margin-bottom:1.5rem; }
+        .login-box input { width:100%; padding:0.75rem 1rem; margin-bottom:0.8rem; border-radius:10px; border:1px solid #333; background:#262a3a; color:#fff; font-family:'Poppins',sans-serif; font-size:0.85rem; }
+        .login-box input:focus { outline:none; border-color:#339dff; }
+        .login-error { color:#ff5252; font-size:0.78rem; margin-bottom:0.5rem; display:none; }
+        
+        /* Layout */
+        .topbar { background:#1a1d2a; padding:0.8rem 2rem; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); }
+        .topbar h1 { font-size:1rem; font-weight:700; }
+        .topbar h1 span { color:#339dff; font-weight:400; font-size:0.8rem; margin-left:0.5rem; }
+        .topbar-actions { display:flex; gap:0.8rem; align-items:center; }
+        
+        .container { max-width:1100px; margin:2rem auto; padding:0 1.5rem; }
+        
+        /* Buttons */
+        .btn { padding:0.6rem 1.2rem; border-radius:10px; font-family:'Poppins',sans-serif; font-size:0.8rem; font-weight:600; border:none; cursor:pointer; transition:all 0.2s; display:inline-flex; align-items:center; gap:0.4rem; }
+        .btn-primary { background:#339dff; color:#fff; }
+        .btn-primary:hover { background:#5cb8ff; }
+        .btn-success { background:#2bff6e; color:#000; }
+        .btn-success:hover { background:#5bffa0; }
+        .btn-danger { background:#ff5252; color:#fff; }
+        .btn-danger:hover { background:#ff7b7b; }
+        .btn-outline { background:transparent; color:#e2e5f0; border:1px solid #444; }
+        .btn-outline:hover { border-color:#339dff; background:rgba(51,157,255,0.1); }
+        .btn-sm { padding:0.4rem 0.8rem; font-size:0.72rem; }
+        .btn-logout { background:transparent; color:#9499b3; border:1px solid #333; }
+        
+        /* Plan Cards */
+        .plans-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; }
+        .plans-header h2 { font-size:1.2rem; }
+        .plan-count { font-size:0.8rem; color:#9499b3; }
+        
+        .admin-card { background:#1a1d2a; border:1px solid rgba(255,255,255,0.06); border-radius:14px; padding:1.5rem; margin-bottom:1rem; transition:all 0.2s; }
+        .admin-card:hover { border-color:rgba(51,157,255,0.2); }
+        .admin-card.inactive { opacity:0.5; }
+        
+        .card-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+        .card-top-left { display:flex; align-items:center; gap:1rem; }
+        .card-thumb { width:80px; height:55px; border-radius:8px; background:#262a3a; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+        .card-thumb img { width:100%; height:100%; object-fit:contain; }
+        .card-thumb-empty { font-size:1.5rem; }
+        .card-info h3 { font-size:0.95rem; font-weight:700; }
+        .card-info p { font-size:0.75rem; color:#9499b3; }
+        .card-badges { display:flex; gap:0.4rem; margin-top:0.3rem; }
+        .badge { font-size:0.65rem; padding:0.15rem 0.5rem; border-radius:20px; font-weight:600; }
+        .badge-blue { background:rgba(51,157,255,0.15); color:#5cb8ff; }
+        .badge-green { background:rgba(43,255,110,0.15); color:#2bff6e; }
+        .badge-yellow { background:rgba(255,200,66,0.15); color:#ffc842; }
+        .badge-red { background:rgba(255,82,82,0.15); color:#ff5252; }
+        
+        .card-actions { display:flex; gap:0.4rem; }
+        
+        .card-details { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0.8rem; margin-bottom:1rem; }
+        .card-detail { background:#262a3a; padding:0.6rem 0.8rem; border-radius:8px; }
+        .card-detail label { font-size:0.6rem; color:#9499b3; text-transform:uppercase; letter-spacing:0.5px; }
+        .card-detail span { font-size:0.85rem; font-weight:600; display:block; }
+        
+        /* Images section */
+        .card-images { display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center; }
+        .card-img { width:70px; height:50px; border-radius:6px; overflow:hidden; position:relative; border:2px solid transparent; cursor:pointer; }
+        .card-img img { width:100%; height:100%; object-fit:cover; }
+        .card-img:hover { border-color:#ff5252; }
+        .card-img .delete-img { position:absolute; inset:0; background:rgba(255,0,0,0.6); display:none; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; font-weight:700; }
+        .card-img:hover .delete-img { display:flex; }
+        .add-img-btn { width:70px; height:50px; border-radius:6px; border:2px dashed #444; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:1.2rem; color:#666; transition:all 0.2s; }
+        .add-img-btn:hover { border-color:#339dff; color:#339dff; }
+        
+        /* Modal */
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; align-items:center; justify-content:center; z-index:5000; backdrop-filter:blur(4px); }
+        .modal-overlay.active { display:flex; }
+        .modal { background:#1a1d2a; border-radius:16px; border:1px solid rgba(51,157,255,0.2); width:90%; max-width:550px; max-height:90vh; overflow-y:auto; }
+        .modal-header { padding:1.2rem 1.5rem; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; justify-content:space-between; align-items:center; }
+        .modal-header h3 { font-size:1rem; }
+        .modal-close { background:none; border:none; color:#9499b3; font-size:1.2rem; cursor:pointer; }
+        .modal-body { padding:1.5rem; }
+        .modal-footer { padding:1rem 1.5rem; border-top:1px solid rgba(255,255,255,0.06); display:flex; justify-content:flex-end; gap:0.5rem; }
+        
+        .form-group { margin-bottom:1rem; }
+        .form-group label { display:block; font-size:0.75rem; font-weight:600; margin-bottom:0.3rem; color:#c0c5d8; }
+        .form-group input, .form-group select { width:100%; padding:0.65rem 0.8rem; border-radius:8px; border:1px solid #333; background:#262a3a; color:#fff; font-family:'Poppins',sans-serif; font-size:0.85rem; }
+        .form-group input:focus, .form-group select:focus { outline:none; border-color:#339dff; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:0.8rem; }
+        
+        /* Upload progress */
+        .upload-progress { margin-top:0.5rem; }
+        .upload-bar { height:4px; background:#262a3a; border-radius:2px; overflow:hidden; }
+        .upload-bar-fill { height:100%; background:#339dff; border-radius:2px; transition:width 0.3s; }
+        .upload-text { font-size:0.7rem; color:#9499b3; margin-top:0.2rem; }
+        
+        /* Toast */
+        .toast { position:fixed; bottom:2rem; right:2rem; background:#2bff6e; color:#000; padding:0.8rem 1.5rem; border-radius:10px; font-size:0.82rem; font-weight:600; z-index:9999; transform:translateY(100px); opacity:0; transition:all 0.3s; }
+        .toast.show { transform:translateY(0); opacity:1; }
+        .toast.error { background:#ff5252; color:#fff; }
+        
+        /* Empty state */
+        .empty-state { text-align:center; padding:4rem 2rem; color:#666; }
+        .empty-state p { font-size:0.9rem; margin-top:0.5rem; }
+        
+        /* Loading */
+        .loading { text-align:center; padding:3rem; color:#9499b3; }
+        
+        @media(max-width:768px) {
+            .form-row { grid-template-columns:1fr; }
+            .card-details { grid-template-columns:1fr 1fr; }
+            .card-top { flex-direction:column; gap:0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- LOGIN -->
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+            <h2>🔐 ALRA Admin</h2>
+            <p>Panel de administración de planes</p>
+            <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+            <input type="text" id="loginUser" placeholder="Usuario" autocomplete="username">
+            <input type="password" id="loginPass" placeholder="Contraseña" autocomplete="current-password">
+            <button class="btn btn-primary" style="width:100%;padding:0.8rem" onclick="login()">Ingresar</button>
+        </div>
+    </div>
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+        <h1>🚗 ALRA Planes <span>Admin</span></h1>
+        <div class="topbar-actions">
+            <a href="/" class="btn btn-outline btn-sm" target="_blank">👁️ Ver Landing</a>
+            <button class="btn btn-logout btn-sm" onclick="logout()">Cerrar sesión</button>
+        </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="container">
+        <div class="plans-header">
+            <div>
+                <h2>Planes de Ahorro</h2>
+                <span class="plan-count" id="planCount"></span>
+            </div>
+            <button class="btn btn-success" onclick="openNewPlan()">+ Nuevo Plan</button>
+        </div>
+        <div id="plansList" class="loading">Cargando planes...</div>
+    </div>
+
+    <!-- MODAL: Crear/Editar Plan -->
+    <div class="modal-overlay" id="planModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Nuevo Plan</h3>
+                <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="planId">
+                <div class="form-group">
+                    <label>Modelo</label>
+                    <input type="text" id="fModelo" placeholder="Volkswagen Tera">
+                </div>
+                <div class="form-group">
+                    <label>Versión / Cuotas</label>
+                    <input type="text" id="fVersion" placeholder="Trend MSI MT · 84 cuotas">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Valor 0km</label>
+                        <input type="text" id="fValor" placeholder="$36.755.250">
+                    </div>
+                    <div class="form-group">
+                        <label>Anticipo</label>
+                        <input type="text" id="fAnticipo" placeholder="$11.026.575">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Cuota desde</label>
+                        <input type="text" id="fCuota" placeholder="$350.574">
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo de plan</label>
+                        <select id="fTipo">
+                            <option value="70/30">70/30</option>
+                            <option value="60/40">60/40</option>
+                            <option value="100%">100%</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Adjudicación desde</label>
+                        <input type="text" id="fAdjudicacion" placeholder="cuota 2">
+                    </div>
+                    <div class="form-group">
+                        <label>Orden</label>
+                        <input type="number" id="fOrden" placeholder="0" value="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Texto WhatsApp</label>
+                    <input type="text" id="fWhatsapp" placeholder="Hola! Quiero info sobre el plan del Tera 70/30">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="savePlan()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Hidden file input for image uploads -->
+    <input type="file" id="imgInput" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)">
+
+    <script>
+        const API_URL = window.location.origin;
+        let token = localStorage.getItem('alra_token') || '';
+        let planes = [];
+        let uploadingForPlanId = null;
+
+        // ═══════════════════════════════════════
+        // AUTH
+        // ═══════════════════════════════════════
+        function checkAuth() {
+            if (token) {
+                document.getElementById('loginOverlay').classList.add('hidden');
+                loadPlanes();
+            }
+        }
+
+        async function login() {
+            const user = document.getElementById('loginUser').value;
+            const pass = document.getElementById('loginPass').value;
+            try {
+                const res = await fetch(API_URL + '/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    token = data.token;
+                    localStorage.setItem('alra_token', token);
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    loadPlanes();
+                } else {
+                    document.getElementById('loginError').style.display = 'block';
+                }
+            } catch (e) {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        function logout() {
+            token = '';
+            localStorage.removeItem('alra_token');
+            location.reload();
+        }
+
+        // Enter key on login
+        document.getElementById('loginPass').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+        // ═══════════════════════════════════════
+        // PLANES
+        // ═══════════════════════════════════════
+        async function loadPlanes() {
+            try {
+                const res = await fetch(API_URL + '/api/admin/planes', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                if (res.status === 401) { logout(); return; }
+                planes = await res.json();
+                renderPlanes();
+            } catch (e) {
+                document.getElementById('plansList').innerHTML = '<div class="empty-state">❌ Error conectando con la API</div>';
+            }
+        }
+
+        function renderPlanes() {
+            const container = document.getElementById('plansList');
+            document.getElementById('planCount').textContent = planes.length + ' planes';
+
+            if (!planes.length) {
+                container.innerHTML = '<div class="empty-state">🚗<p>No hay planes cargados. Creá el primero!</p></div>';
+                return;
+            }
+
+            container.innerHTML = planes.map(p => {
+                const mainImg = p.imagenes?.[0]?.url;
+                const tipoClass = p.tipo.includes('70') ? 'badge-green' : p.tipo.includes('60') ? 'badge-yellow' : 'badge-blue';
+                
+                return `
+                <div class="admin-card ${p.activo ? '' : 'inactive'}">
+                    <div class="card-top">
+                        <div class="card-top-left">
+                            <div class="card-thumb">
+                                ${mainImg ? `<img src="${mainImg}">` : '<span class="card-thumb-empty">🚗</span>'}
+                            </div>
+                            <div class="card-info">
+                                <h3>${p.modelo}</h3>
+                                <p>${p.version}</p>
+                                <div class="card-badges">
+                                    <span class="badge ${tipoClass}">${p.tipo}</span>
+                                    ${!p.activo ? '<span class="badge badge-red">Inactivo</span>' : ''}
+                                    <span class="badge badge-blue">${p.imagenes?.length || 0} fotos</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-outline btn-sm" onclick="toggleActive(${p.id}, ${p.activo})">${p.activo ? '👁️ Ocultar' : '👁️ Mostrar'}</button>
+                            <button class="btn btn-primary btn-sm" onclick="editPlan(${p.id})">✏️ Editar</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePlan(${p.id}, '${p.modelo}')">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <div class="card-detail"><label>Valor 0km</label><span>${p.valor || '-'}</span></div>
+                        <div class="card-detail"><label>Anticipo</label><span>${p.anticipo || '-'}</span></div>
+                        <div class="card-detail"><label>Cuota</label><span>${p.cuota || '-'}</span></div>
+                        <div class="card-detail"><label>Adjudicación</label><span>${p.adjudicacion || '-'}</span></div>
+                    </div>
+                    <div class="card-images">
+                        ${(p.imagenes || []).map(img => `
+                            <div class="card-img" onclick="deleteImage(${img.id}, '${p.modelo}')">
+                                <img src="${img.url}">
+                                <div class="delete-img">✕</div>
+                            </div>
+                        `).join('')}
+                        <div class="add-img-btn" onclick="triggerUpload(${p.id})">+</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function openNewPlan() {
+            document.getElementById('modalTitle').textContent = 'Nuevo Plan';
+            document.getElementById('planId').value = '';
+            document.getElementById('fModelo').value = '';
+            document.getElementById('fVersion').value = '';
+            document.getElementById('fValor').value = '';
+            document.getElementById('fAnticipo').value = '';
+            document.getElementById('fCuota').value = '';
+            document.getElementById('fTipo').value = '70/30';
+            document.getElementById('fAdjudicacion').value = 'cuota 2';
+            document.getElementById('fOrden').value = '0';
+            document.getElementById('fWhatsapp').value = '';
+            document.getElementById('planModal').classList.add('active');
+        }
+
+        function editPlan(id) {
+            const p = planes.find(x => x.id === id);
+            if (!p) return;
+            document.getElementById('modalTitle').textContent = 'Editar: ' + p.modelo;
+            document.getElementById('planId').value = p.id;
+            document.getElementById('fModelo').value = p.modelo;
+            document.getElementById('fVersion').value = p.version;
+            document.getElementById('fValor').value = p.valor;
+            document.getElementById('fAnticipo').value = p.anticipo;
+            document.getElementById('fCuota').value = p.cuota;
+            document.getElementById('fTipo').value = p.tipo;
+            document.getElementById('fAdjudicacion').value = p.adjudicacion;
+            document.getElementById('fOrden').value = p.orden || 0;
+            document.getElementById('fWhatsapp').value = p.whatsapp_texto;
+            document.getElementById('planModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('planModal').classList.remove('active');
+        }
+
+        async function savePlan() {
+            const id = document.getElementById('planId').value;
+            const data = {
+                modelo: document.getElementById('fModelo').value,
+                version: document.getElementById('fVersion').value,
+                valor: document.getElementById('fValor').value,
+                anticipo: document.getElementById('fAnticipo').value,
+                cuota: document.getElementById('fCuota').value,
+                tipo: document.getElementById('fTipo').value,
+                adjudicacion: document.getElementById('fAdjudicacion').value,
+                orden: parseInt(document.getElementById('fOrden').value) || 0,
+                whatsapp_texto: document.getElementById('fWhatsapp').value,
+                activo: 1
+            };
+
+            const url = id ? `${API_URL}/api/admin/planes/${id}` : `${API_URL}/api/admin/planes`;
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(data)
+                });
+                if (res.ok) {
+                    toast(id ? 'Plan actualizado ✅' : 'Plan creado ✅');
+                    closeModal();
+                    loadPlanes();
+                } else {
+                    toast('Error guardando plan', true);
+                }
+            } catch (e) {
+                toast('Error de conexión', true);
+            }
+        }
+
+        async function deletePlan(id, nombre) {
+            if (!confirm(`¿Eliminar "${nombre}" y todas sus imágenes?`)) return;
+            try {
+                await fetch(`${API_URL}/api/admin/planes/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                toast('Plan eliminado');
+                loadPlanes();
+            } catch (e) {
+                toast('Error eliminando', true);
+            }
+        }
+
+        async function toggleActive(id, current) {
+            const plan = planes.find(x => x.id === id);
+            if (!plan) return;
+            plan.activo = current ? 0 : 1;
+            try {
+                await fetch(`${API_URL}/api/admin/planes/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+                    body: JSON.stringify(plan)
+                });
+                toast(plan.activo ? 'Plan activado ✅' : 'Plan ocultado');
+                loadPlanes();
+            } catch (e) {
+                toast('Error', true);
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // IMAGES
+        // ═══════════════════════════════════════
+        function triggerUpload(planId) {
+            uploadingForPlanId = planId;
+            document.getElementById('imgInput').click();
+        }
+
+        async function handleImageUpload(event) {
+            const files = event.target.files;
+            if (!files.length || !uploadingForPlanId) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const formData = new FormData();
+                formData.append('imagen', files[i]);
+
+                toast(`Subiendo imagen ${i + 1}/${files.length}...`);
+
+                try {
+                    const res = await fetch(`${API_URL}/api/admin/planes/${uploadingForPlanId}/imagenes`, {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + token },
+                        body: formData
+                    });
+                    if (!res.ok) throw new Error();
+                } catch (e) {
+                    toast(`Error subiendo imagen ${i + 1}`, true);
+                }
+            }
+
+            toast('Imágenes subidas ✅');
+            event.target.value = '';
+            loadPlanes();
+        }
+
+        async function deleteImage(imgId, planName) {
+            if (!confirm(`¿Eliminar esta imagen de ${planName}?`)) return;
+            try {
+                await fetch(`${API_URL}/api/admin/imagenes/${imgId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
+                toast('Imagen eliminada');
+                loadPlanes();
+            } catch (e) {
+                toast('Error eliminando imagen', true);
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // TOAST
+        // ═══════════════════════════════════════
+        function toast(msg, isError = false) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.className = 'toast show' + (isError ? ' error' : '');
+            setTimeout(() => el.className = 'toast', 2500);
+        }
+
+        // Init
+        checkAuth();
+    </script>
+</body>
+</html>
