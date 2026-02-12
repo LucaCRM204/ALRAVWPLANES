@@ -37,6 +37,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 // ═══════════════════════════════════════
 // DATABASE SETUP (SQLite)
 // ═══════════════════════════════════════
+import { mkdirSync } from 'fs';
+try { mkdirSync(join(__dirname, 'data'), { recursive: true }); } catch(e) {}
+
 const db = new Database(join(__dirname, 'data', 'alra.db'));
 db.pragma('journal_mode = WAL');
 
@@ -83,9 +86,7 @@ if (configCount.c === 0) {
   insertConfig.run('hero_subtitle', 'Financiá tu Volkswagen 0km. Adjudicación asegurada desde cuota 2. Más de 42 años acompañándote.');
 }
 
-// Import data dir
-import { mkdirSync } from 'fs';
-try { mkdirSync(join(__dirname, 'data'), { recursive: true }); } catch(e) {}
+
 
 // ═══════════════════════════════════════
 // AUTH
